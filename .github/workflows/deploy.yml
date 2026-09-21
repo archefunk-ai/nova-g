@@ -19,3 +19,8 @@ jobs:
             cd ~/nova-g
             git pull
             docker compose up -d --build
+            sleep 20
+            echo "===== docker compose logs (last 80 lines) ====="
+            docker compose logs --tail=80 bot
+            echo "===== docker ps ====="
+            docker ps -a
