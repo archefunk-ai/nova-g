@@ -18,11 +18,61 @@ jobs:
           script: |
             cd ~/nova-g
             git pull
+            cat > xray-config.json << 'XRAYEOF'
+            {
+              "log": {"loglevel": "warning"},
+              "inbounds": [
+                {
+                  "listen": "127.0.0.1",
+                  "port": 1080,
+                  "protocol": "socks",
+                  "settings": {"auth": "noauth", "udp": true}
+                }
+              ],
+              "outbounds": [
+                {
+                  "protocol": "vless",
+                  "settings": {
+                    "vnext": [
+                      {
+                        "address": "2.26.135.231",
+                        "port": 443,
+                        "users": [
+                          {
+                            "id": "61e87f68-29b9-42a2-b66a-56b72ac1886e",
+                            "encryption": "none",
+                            "flow": "xtls-rprx-vision"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "streamSettings": {
+                    "network": "tcp",
+                    "security": "reality",
+                    "realitySettings": {
+                      "fingerprint": "chrome",
+                      "serverName": "promo-digital.wb.ru",
+                      "publicKey": "hO2ivrVA9pHjOiR3E_mpvBA8Vya5lrks-jfnla2bBHQ",
+                      "shortId": "a1f9c0e21d7b6485",
+                      "spiderX": "/"
+                    }
+                  },
+                  "tag": "proxy"
+                },
+                {"protocol": "freedom", "tag": "direct"},
+                {"protocol": "blackhole", "tag": "block"}
+              ]
+            }
+            XRAYEOF
+            grep -q '^TELEGRAM_PROXY_URL=' .env && sed -i 's#^TELEGRAM_PROXY_URL=.*#TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080#' .env || echo 'TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080' >> .env
             docker compose up -d --build
             sleep 20
-            echo "===== curl api.telegram.org from host ====="
-            curl -sS --max-time 15 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://api.telegram.org || echo "curl failed"
-            echo "===== docker compose logs (last 80 lines) ====="
+            echo "===== curl api.telegram.org via SOCKS5 proxy ====="
+            curl -sS --max-time 15 -x socks5h://127.0.0.1:1080 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://api.telegram.org || echo "curl via proxy failed"
+            echo "===== docker compose logs xray (last 40 lines) ====="
+            docker compose logs --tail=40 xray
+            echo "===== docker compose logs bot (last 80 lines) ====="
             docker compose logs --tail=80 bot
             echo "===== docker ps ====="
             docker ps -a
