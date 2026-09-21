@@ -20,6 +20,8 @@ jobs:
             git pull
             docker compose up -d --build
             sleep 20
+            echo "===== curl api.telegram.org from host ====="
+            curl -sS --max-time 15 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://api.telegram.org || echo "curl failed"
             echo "===== docker compose logs (last 80 lines) ====="
             docker compose logs --tail=80 bot
             echo "===== docker ps ====="
