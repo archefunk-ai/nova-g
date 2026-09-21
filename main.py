@@ -18,7 +18,16 @@ def main() -> None:
             "Не найден TELEGRAM_BOT_TOKEN. Скопируй .env.example в .env и впиши туда токен от @BotFather."
         )
 
-    builder = Application.builder().token(config.TELEGRAM_BOT_TOKEN)
+    builder = (
+        Application.builder()
+        .token(config.TELEGRAM_BOT_TOKEN)
+        .connect_timeout(30)
+        .read_timeout(30)
+        .write_timeout(30)
+        .pool_timeout(30)
+        .get_updates_connect_timeout(30)
+        .get_updates_read_timeout(40)
+    )
     if config.TELEGRAM_PROXY_URL:
         builder = builder.proxy(config.TELEGRAM_PROXY_URL).get_updates_proxy(config.TELEGRAM_PROXY_URL)
     app = builder.build()
