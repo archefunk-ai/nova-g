@@ -21,8 +21,18 @@ jobs:
             cat > xray-config.json << 'XRAYEOF'
             ${{ secrets.XRAY_CONFIG_JSON }}
             XRAYEOF
-            grep -q '^TELEGRAM_PROXY_URL=' .env && sed -i 's#^TELEGRAM_PROXY_URL=.*#TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080#' .env || echo 'TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080' >> .env
-            sed -i 's#^TELEGRAM_BOT_TOKEN=.*#TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}#' .env
+            cat > credentials.json << 'CREDEOF'
+            ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+            CREDEOF
+            cat > token.json << 'TOKENEOF'
+            ${{ secrets.GOOGLE_TOKEN_JSON }}
+            TOKENEOF
+            cat > .env << 'ENVEOF'
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            TIMEZONE=Europe/Moscow
+            ALLOWED_USER_ID=
+            TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080
+            ENVEOF
             docker compose up -d --build
             sleep 20
             echo "===== curl api.telegram.org via SOCKS5 proxy ====="
