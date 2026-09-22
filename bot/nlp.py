@@ -22,6 +22,11 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def clean_text(text: str) -> str:
+    """Публичная обёртка над _clean — переиспользуется в rules.py."""
+    return _clean(text)
+
+
 def parse_datetime(text: str) -> datetime | None:
     settings = {
         "TIMEZONE": config.TIMEZONE,

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from . import config, google_client, nlu
+from . import config, google_client, nlu, rules
 from .nlp import parse_datetime
 
 HELP_TEXT = (
@@ -252,7 +252,11 @@ async def _dispatch_parsed(update: Update, parsed: dict) -> None:
 @restricted
 async def freeform_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text or ""
-    parsed = await nlu.interpret(text)
+    # Сначала пробуем понять текст простыми правилами — это бесплатно и не тратит
+    # суточную квоту Gemini. К ИИ обращаемся только если правила не справились.
+    parsed = rules.parse_command(text)
+    if parsed is None:
+        parsed = await nlu.interpret(text)
     await _dispatch_parsed(update, parsed)
 
 
