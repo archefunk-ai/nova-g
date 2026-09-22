@@ -41,3 +41,5 @@ jobs:
             uptime -s 2>&1 || uptime
             echo "===== docker compose logs bot (last 200 lines) ====="
             docker compose logs --tail=200 bot
+            echo "===== iasistentbot-bot-1 logs (last 100 lines) ====="
+            docker logs --tail=100 iasistentbot-bot-1 2>&1 || echo "no such container"
