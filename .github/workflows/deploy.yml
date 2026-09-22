@@ -1,11 +1,10 @@
 name: Deploy to VPS
 
-# ВАЖНО: бота перенесли в папку Iasistentbot на сервере и теперь управляют
-# им оттуда напрямую. Автозапуск по пушу отключён, чтобы этот workflow
-# случайно не поднял второй экземпляр бота в /root/nova-g (конфликт двух
-# ботов с одним токеном в Telegram). Запускать только вручную, и только
-# после того как этот workflow будет перенаправлен на новую папку.
+# Бот живёт в папке /root/Iasistentbot на сервере.
 on:
+  push:
+    branches:
+      - claude/telegram-bot-calendar-sync-qi2012
   workflow_dispatch:
 
 jobs:
@@ -22,7 +21,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           source: "bot/,main.py,Dockerfile,docker-compose.yml,requirements.txt,setup_google_auth.py"
-          target: "/root/nova-g"
+          target: "/root/Iasistentbot"
           strip_components: 0
           overwrite: true
 
@@ -33,7 +32,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd ~/nova-g
+            cd /root/Iasistentbot
             rm -rf .git .github
             cat > xray-config.json << 'XRAYEOF'
             ${{ secrets.XRAY_CONFIG_JSON }}
