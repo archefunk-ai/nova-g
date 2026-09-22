@@ -1,14 +1,21 @@
 """Разбор свободных сообщений (текст и голос) в команды через Gemini API."""
 
+import asyncio
 import base64
 import json
 import logging
+import re
 
 import httpx
 
 from . import config
 
 logger = logging.getLogger(__name__)
+
+# Бесплатный тариф Gemini иногда отвечает 429 с "Please retry in Ns" —
+# это короткое ограничение по скорости (не дневной лимит), стоит подождать и повторить.
+_RETRY_DELAY_RE = re.compile(r"retry in ([\d.]+)s", re.IGNORECASE)
+_MAX_RETRIES = 2
 
 _ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -75,26 +82,34 @@ async def _call_gemini(parts: list[dict]) -> dict:
         },
     }
 
-    try:
-        async with httpx.AsyncClient(timeout=30, proxy=config.TELEGRAM_PROXY_URL or None) as client:
-            response = await client.post(
-                _ENDPOINT,
-                params={"key": config.GEMINI_API_KEY},
-                json=payload,
-            )
-        response.raise_for_status()
-        data = response.json()
-        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(raw_text)
-        if not isinstance(parsed, dict) or "action" not in parsed:
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            async with httpx.AsyncClient(timeout=30, proxy=config.TELEGRAM_PROXY_URL or None) as client:
+                response = await client.post(
+                    _ENDPOINT,
+                    params={"key": config.GEMINI_API_KEY},
+                    json=payload,
+                )
+            response.raise_for_status()
+            data = response.json()
+            raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            parsed = json.loads(raw_text)
+            if not isinstance(parsed, dict) or "action" not in parsed:
+                return {"action": "unknown"}
+            return parsed
+        except httpx.HTTPStatusError as exc:
+            body = exc.response.text
+            logger.error("Gemini API error %s: %s", exc.response.status_code, body)
+            if exc.response.status_code == 429 and attempt < _MAX_RETRIES:
+                match = _RETRY_DELAY_RE.search(body)
+                delay = float(match.group(1)) if match else 5.0
+                await asyncio.sleep(min(delay, 15.0) + 1)
+                continue
             return {"action": "unknown"}
-        return parsed
-    except httpx.HTTPStatusError as exc:
-        logger.error("Gemini API error %s: %s", exc.response.status_code, exc.response.text)
-        return {"action": "unknown"}
-    except Exception:  # noqa: BLE001 - любая проблема с ИИ не должна ронять бота
-        logger.exception("Gemini interpret failed")
-        return {"action": "unknown"}
+        except Exception:  # noqa: BLE001 - любая проблема с ИИ не должна ронять бота
+            logger.exception("Gemini interpret failed")
+            return {"action": "unknown"}
+    return {"action": "unknown"}
 
 
 async def interpret(text: str) -> dict:
