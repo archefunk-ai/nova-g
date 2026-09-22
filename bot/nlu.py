@@ -66,7 +66,7 @@ async def interpret(text: str) -> dict:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        async with httpx.AsyncClient(timeout=20, proxy=config.TELEGRAM_PROXY_URL or None) as client:
             response = await client.post(
                 _ENDPOINT,
                 params={"key": config.GEMINI_API_KEY},
