@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/telegram-bot-calendar-sync-qi2012
+  workflow_dispatch:
 
 jobs:
   deploy:
