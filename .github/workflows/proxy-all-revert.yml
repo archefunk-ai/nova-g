@@ -1,0 +1,28 @@
+name: Route ALL VPS traffic through proxy (revert)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  revert:
+    runs-on: ubuntu-latest
+    env:
+      _MASK_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      _MASK_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      _MASK_GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+    steps:
+      - name: Undo transparent proxy (anytime, even after confirm)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            for j in $(atq | awk '{print $1}'); do atrm "$j"; done
+            iptables -t nat -D OUTPUT -p tcp -m conntrack --ctstate NEW -j REDSOCKS 2>/dev/null || true
+            iptables -t nat -F REDSOCKS 2>/dev/null || true
+            iptables -t nat -X REDSOCKS 2>/dev/null || true
+            if [ -f /etc/iptables/rules.v4 ]; then
+              netfilter-persistent save || true
+            fi
+            echo "===== Весь трафик снова идёт напрямую. ====="

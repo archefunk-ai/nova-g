@@ -1,0 +1,26 @@
+name: Route ALL VPS traffic through proxy (confirm / make permanent)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  confirm:
+    runs-on: ubuntu-latest
+    env:
+      _MASK_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      _MASK_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      _MASK_GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+    steps:
+      - name: Cancel pending auto-revert and persist iptables rules
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            for j in $(atq | awk '{print $1}'); do atrm "$j"; done
+            DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent
+            netfilter-persistent save
+            echo "===== Откат отменён, правила сохранены навсегда (переживут перезагрузку). ====="
+            iptables -t nat -L REDSOCKS -n
