@@ -13,6 +13,7 @@ HELP_TEXT = (
     "Привет! Я помогу тебе не забывать дела 🙂\n\n"
     "Можешь писать обычными словами — например «напомни завтра купить хлеб» "
     "или «встреча с другом в пятницу в 18:00» — я пойму.\n\n"
+    "Можешь и голосовым сообщением — тоже пойму 🎙\n\n"
     "Или точными командами:\n\n"
     "Дела (Google Tasks):\n"
     "/task Купить хлеб | завтра — добавить дело\n"
@@ -224,13 +225,10 @@ async def agenda(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await _do_agenda(update, when_text)
 
 
-# ---------- Свободный текст (через Gemini) ----------
+# ---------- Свободный текст и голос (через Gemini) ----------
 
 
-@restricted
-async def freeform_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text or ""
-    parsed = await nlu.interpret(text)
+async def _dispatch_parsed(update: Update, parsed: dict) -> None:
     action = parsed.get("action", "unknown")
 
     if action == "add_task":
@@ -249,3 +247,20 @@ async def freeform_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await update.message.reply_text(
             "Не поняла, что нужно сделать 🤔 Напиши иначе, или посмотри /help"
         )
+
+
+@restricted
+async def freeform_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text or ""
+    parsed = await nlu.interpret(text)
+    await _dispatch_parsed(update, parsed)
+
+
+@restricted
+async def voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    voice = update.message.voice
+    file = await context.bot.get_file(voice.file_id)
+    audio_bytes = bytes(await file.download_as_bytearray())
+
+    parsed = await nlu.interpret_audio(audio_bytes, mime_type=voice.mime_type or "audio/ogg")
+    await _dispatch_parsed(update, parsed)

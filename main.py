@@ -43,6 +43,7 @@ def main() -> None:
     app.add_handler(CommandHandler("event", handlers.add_event))
     app.add_handler(CommandHandler("agenda", handlers.agenda))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.freeform_message))
+    app.add_handler(MessageHandler(filters.VOICE, handlers.voice_message))
 
     print("Бот запущен. Останови его сочетанием Ctrl+C.")
     app.run_polling()

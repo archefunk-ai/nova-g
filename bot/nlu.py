@@ -1,5 +1,6 @@
-"""Разбор свободных сообщений в команды через Gemini API."""
+"""Разбор свободных сообщений (текст и голос) в команды через Gemini API."""
 
+import base64
 import json
 import logging
 
@@ -16,7 +17,8 @@ _ENDPOINT = (
 
 _SYSTEM_PROMPT = """\
 Ты — модуль разбора команд для Telegram-бота планировщика. Пользователь \
-пишет сообщение обычным языком. Определи, что он хочет, и верни JSON по схеме.
+пишет или наговаривает голосом сообщение обычным языком (если это аудио — \
+сначала распознай речь). Определи, что он хочет, и верни JSON по схеме.
 
 Возможные action:
 - add_task: добавить дело/напоминание (Google Tasks, без точного времени). \
@@ -30,7 +32,7 @@ title — текст дела. when_text — как пользователь о�
 - agenda: спросить, что запланировано на день. when_text — про какой день, \
 если не сказано явно — не указывай поле (будет "сегодня").
 - help: пользователь спрашивает, что бот умеет, или поздоровался.
-- unknown: не понятно, что хочет пользователь.
+- unknown: не понятно, что хочет пользователь, или речь неразборчива.
 
 title и when_text бери как можно ближе к словам пользователя, на русском.
 """
@@ -50,15 +52,15 @@ _RESPONSE_SCHEMA = {
 }
 
 
-async def interpret(text: str) -> dict:
-    """Возвращает {"action": ..., "title": ..., "when_text": ..., "task_number": ...}."""
+async def _call_gemini(parts: list[dict]) -> dict:
+    """Отправляет parts (текст и/или аудио) в Gemini и разбирает JSON-ответ."""
 
     if not config.GEMINI_API_KEY:
         return {"action": "unknown"}
 
     payload = {
         "system_instruction": {"parts": [{"text": _SYSTEM_PROMPT}]},
-        "contents": [{"parts": [{"text": text}]}],
+        "contents": [{"parts": parts}],
         "generationConfig": {
             "response_mime_type": "application/json",
             "response_schema": _RESPONSE_SCHEMA,
@@ -66,7 +68,7 @@ async def interpret(text: str) -> dict:
     }
 
     try:
-        async with httpx.AsyncClient(timeout=20, proxy=config.TELEGRAM_PROXY_URL or None) as client:
+        async with httpx.AsyncClient(timeout=30, proxy=config.TELEGRAM_PROXY_URL or None) as client:
             response = await client.post(
                 _ENDPOINT,
                 params={"key": config.GEMINI_API_KEY},
@@ -85,3 +87,16 @@ async def interpret(text: str) -> dict:
     except Exception:  # noqa: BLE001 - любая проблема с ИИ не должна ронять бота
         logger.exception("Gemini interpret failed")
         return {"action": "unknown"}
+
+
+async def interpret(text: str) -> dict:
+    """Возвращает {"action": ..., "title": ..., "when_text": ..., "task_number": ...}."""
+
+    return await _call_gemini([{"text": text}])
+
+
+async def interpret_audio(audio_bytes: bytes, mime_type: str = "audio/ogg") -> dict:
+    """То же самое, но на входе — голосовое сообщение (Gemini сам распознаёт речь)."""
+
+    audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
+    return await _call_gemini([{"inline_data": {"mime_type": mime_type, "data": audio_b64}}])
