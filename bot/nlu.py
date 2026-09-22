@@ -1,10 +1,13 @@
 """Разбор свободных сообщений в команды через Gemini API."""
 
 import json
+import logging
 
 import httpx
 
 from . import config
+
+logger = logging.getLogger(__name__)
 
 _ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -76,5 +79,9 @@ async def interpret(text: str) -> dict:
         if not isinstance(parsed, dict) or "action" not in parsed:
             return {"action": "unknown"}
         return parsed
+    except httpx.HTTPStatusError as exc:
+        logger.error("Gemini API error %s: %s", exc.response.status_code, exc.response.text)
+        return {"action": "unknown"}
     except Exception:  # noqa: BLE001 - любая проблема с ИИ не должна ронять бота
+        logger.exception("Gemini interpret failed")
         return {"action": "unknown"}
