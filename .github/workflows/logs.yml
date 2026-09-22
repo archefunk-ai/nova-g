@@ -23,5 +23,21 @@ jobs:
             cd ~/nova-g
             echo "===== docker ps ====="
             docker ps -a
+            echo "===== docker images ====="
+            docker images
+            echo "===== redsocks service ====="
+            systemctl status redsocks --no-pager 2>&1 | head -20 || echo "no redsocks service"
+            echo "===== xray-transparent related services ====="
+            systemctl list-units --type=service --all 2>&1 | grep -i -E "xray|redsocks|proxy" || echo "none found"
+            echo "===== iptables nat OUTPUT ====="
+            iptables -t nat -L OUTPUT -n --line-numbers 2>&1 || echo "iptables check failed"
+            echo "===== direct curl to registry-1.docker.io ====="
+            curl -sS --max-time 10 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://registry-1.docker.io/v2/ || echo "direct curl failed"
+            echo "===== direct curl to api.telegram.org ====="
+            curl -sS --max-time 10 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://api.telegram.org || echo "direct curl to telegram failed"
+            echo "===== curl via SOCKS5 127.0.0.1:1080 ====="
+            curl -sS --max-time 10 -x socks5h://127.0.0.1:1080 -o /dev/null -w "HTTP %{http_code}, time %{time_total}s\n" https://registry-1.docker.io/v2/ || echo "socks5 curl failed"
+            echo "===== uptime (checking for recent reboot) ====="
+            uptime -s 2>&1 || uptime
             echo "===== docker compose logs bot (last 200 lines) ====="
             docker compose logs --tail=200 bot
