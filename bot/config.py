@@ -13,6 +13,10 @@ TIMEZONE = os.getenv("TIMEZONE", "Europe/Moscow")
 # укажи здесь адрес SOCKS5-туннеля, например socks5://127.0.0.1:1080
 TELEGRAM_PROXY_URL = os.getenv("TELEGRAM_PROXY_URL", "").strip()
 
+# Ключ Gemini API — для понимания сообщений, написанных обычным языком.
+# Если пустой, бот понимает только команды вида /task, /event и т.д.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
 _allowed_user_id = os.getenv("ALLOWED_USER_ID", "").strip()
 ALLOWED_USER_ID = int(_allowed_user_id) if _allowed_user_id else None
 

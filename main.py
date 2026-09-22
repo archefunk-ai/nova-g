@@ -2,7 +2,7 @@
 
 import logging
 
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from bot import config, handlers
 
@@ -39,6 +39,7 @@ def main() -> None:
     app.add_handler(CommandHandler("done", handlers.done_task))
     app.add_handler(CommandHandler("event", handlers.add_event))
     app.add_handler(CommandHandler("agenda", handlers.agenda))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handlers.freeform_message))
 
     print("Бот запущен. Останови его сочетанием Ctrl+C.")
     app.run_polling()

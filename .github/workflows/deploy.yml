@@ -32,6 +32,7 @@ jobs:
             TIMEZONE=Europe/Moscow
             ALLOWED_USER_ID=
             TELEGRAM_PROXY_URL=socks5://127.0.0.1:1080
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             ENVEOF
             docker compose up -d --build
             sleep 20
