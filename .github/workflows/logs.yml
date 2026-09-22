@@ -6,6 +6,12 @@ on:
 jobs:
   logs:
     runs-on: ubuntu-latest
+    env:
+      # Регистрируем секреты здесь, чтобы GitHub маскировал их в выводе ниже,
+      # даже если этот workflow их сам не использует напрямую.
+      _MASK_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      _MASK_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      _MASK_GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
     steps:
       - name: Fetch logs via SSH
         uses: appleboy/ssh-action@v1.0.3

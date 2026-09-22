@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 _ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.0-flash:generateContent"
+    "gemini-3.6-flash:generateContent"
 )
 
 _SYSTEM_PROMPT = """\

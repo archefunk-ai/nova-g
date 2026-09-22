@@ -10,6 +10,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
 )
+# httpx на уровне INFO печатает полный URL запроса, а Telegram Bot API
+# зашивает токен прямо в URL — нельзя, чтобы это попадало в логи.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def main() -> None:
